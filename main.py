@@ -333,28 +333,6 @@ class App(App):
                     pass    
 
 
-    # def buildProcessos(self):
-    #     self.layoutProcessos = BoxLayout(orientation='horizontal')
-    #     Window.size = (1200, 700)
-
-    #     records = self.model.show_records()
-    #     column_titles = ["ID", "PID", "UID", "PRIORIDADE", "CPU", "ESTADO", "MEMÓRIA"]  
-
-    #     grid_layout = GridLayout(cols=len(column_titles), spacing=(0, 5))  
-
-    #     for title in column_titles:
-    #         grid_layout.add_widget(Label(text=title, bold=True))
-
-    #     for record in records:
-    #         for field in record.keys():
-    #             grid_layout.add_widget(Label(text=str(record[field])))
-
-    #     scroll_view = ScrollView()
-    #     scroll_view.add_widget(grid_layout)
-
-    #     self.layoutProcessos.add_widget(scroll_view)
-
-    #     return self.layoutProcessos
 
     def run(self):
         self.build()

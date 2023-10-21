@@ -32,7 +32,7 @@ class Model:
         self.collection.delete_one(query)
 
     def cria_registros(self):
-        for _ in range(5):
+        for _ in range(10):
             pid = random.randint(1, 100)
             uid = random.randint(1, 100)
             prioridade = random.choice(['Alta', 'Média', 'Baixa'])
@@ -100,6 +100,7 @@ class Model:
         # Embaralhe a lista de processos para selecionar aleatoriamente
         random.shuffle(processos)
 
+
         # Selecione os primeiros 'num_processos_alterados' processos da lista
         processos_para_alterar = processos[:num_processos_alterados]
 
@@ -114,6 +115,16 @@ class Model:
             processo['estado'] = proximo_estado
             self.update_document({'pid': processo['pid']}, {'$set': {'estado': proximo_estado}})
         
+        processo_execucao = self.collection.find_one({"estado": "Execução"})
+        if not processo_execucao:
+            # Se não houver processos em "Execução," obtenha o processo em estado "Pronto" e defina-o para "Execução"
+            processo_pronto = self.collection.find_one({"estado": "Pronto"})
+
+            if processo_pronto:
+                processo_pronto['estado'] = 'Execução'
+                self.update_document({'pid': processo_pronto['pid']}, {'$set': {'estado': 'Execução'}})
+
+
         return
 
 
