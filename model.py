@@ -52,38 +52,64 @@ class Model:
             # Insira o registro no banco de dados
             self.insert_document(registro)
 
-    def mudar_estado(self):
-        # Obtenha todos os processos em estado "Início"
-        processos_inicio = list(self.collection.find({"estado": "Início"}))
+ 
+    def mudar_estado(self, num_processos_alterados=2):
+        # Obtenha todos os processos em estado "Término"
+        processos_termino = list(self.collection.find({"estado": "Término"}))
 
+        if len(processos_termino) == len(list(self.collection.find())):
+            # Todos os processos estão em "Término", retorne sem fazer nenhuma alteração
+            return
+
+        # Obtenha o processo em estado "Execução"
+        processo_execucao = self.collection.find_one({"estado": "Execução"})
+
+        if processo_execucao:
+            # Use random.choice para escolher aleatoriamente o próximo estado
+            proximo_estado = random.choice(["Pronto", "Término", "Espera"])
+            processo_execucao['estado'] = proximo_estado
+            self.update_document({'pid': processo_execucao['pid']}, {'$set': {'estado': proximo_estado}})
+        
+        processos_inicio = list(self.collection.find({"estado": "Início"}))
+        
         if processos_inicio:
             for processo in processos_inicio:
                 processo['estado'] = 'Pronto'
                 self.update_document({'pid': processo['pid']}, {'$set': {'estado': 'Pronto'}})
         else:
-            # Obtenha o processo em estado "Execução"
-            processo_execucao = self.collection.find_one({"estado": "Execução"})
+            # Obtenha o processo em estado "Pronto"
+            processo_pronto = self.collection.find_one({"estado": "Pronto"})
 
-            if processo_execucao:
-                # Use random.choice para escolher aleatoriamente o próximo estado
-                proximo_estado = random.choice(["Pronto", "Término", "Espera"])
-                processo_execucao['estado'] = proximo_estado
-                self.update_document({'pid': processo_execucao['pid']}, {'$set': {'estado': proximo_estado}})
+            if processo_pronto:
+                processo_pronto['estado'] = 'Execução'
+                self.update_document({'pid': processo_pronto['pid']}, {'$set': {'estado': 'Execução'}})
             else:
-                # Obtenha o processo em estado "Pronto"
-                processo_pronto = self.collection.find_one({"estado": "Pronto"})
+                # Obtenha o processo em estado "Espera"
+                processo_espera = self.collection.find_one({"estado": "Espera"})
 
-                if processo_pronto:
-                    processo_pronto['estado'] = 'Execução'
-                    self.update_document({'pid': processo_pronto['pid']}, {'$set': {'estado': 'Execução'}})
-                else:
-                    # Obtenha o processo em estado "Espera"
-                    processo_espera = self.collection.find_one({"estado": "Espera"})
+                if processo_espera:
+                    processo_espera['estado'] = 'Pronto'
+                    self.update_document({'pid': processo_espera['pid']}, {'$set': {'estado': 'Pronto'}})
 
-                    if processo_espera:
-                        processo_espera['estado'] = 'Pronto'
-                        self.update_document({'pid': processo_espera['pid']}, {'$set': {'estado': 'Pronto'}})
+        # Obtenha todos os processos da coleção após a atualização
+        processos = list(self.collection.find())
 
+        # Garanta que o número de processos a serem alterados não exceda o total de processos
+        num_processos_alterados = min(num_processos_alterados, len(processos))
+
+        # Embaralhe a lista de processos para selecionar aleatoriamente
+        random.shuffle(processos)
+
+        # Selecione os primeiros 'num_processos_alterados' processos da lista
+        processos_para_alterar = processos[:num_processos_alterados]
+
+        for processo in processos_para_alterar:
+            # Use random.choice para escolher aleatoriamente o próximo estado
+            proximo_estado = random.choice(["Pronto", "Espera", "Término"])
+
+            processo['estado'] = proximo_estado
+            self.update_document({'pid': processo['pid']}, {'$set': {'estado': proximo_estado}})
+        
         return
 
 
