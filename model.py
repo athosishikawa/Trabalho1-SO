@@ -104,8 +104,12 @@ class Model:
         processos_para_alterar = processos[:num_processos_alterados]
 
         for processo in processos_para_alterar:
-            # Use random.choice para escolher aleatoriamente o próximo estado
-            proximo_estado = random.choice(["Pronto", "Espera", "Término"])
+
+            if processo["estado"] == "Espera":
+                proximo_estado = "Pronto"
+            else:
+                # Use random.choice para escolher aleatoriamente entre "Pronto", "Espera" e "Término"
+                proximo_estado = random.choice(["Pronto", "Espera"])
 
             processo['estado'] = proximo_estado
             self.update_document({'pid': processo['pid']}, {'$set': {'estado': proximo_estado}})
