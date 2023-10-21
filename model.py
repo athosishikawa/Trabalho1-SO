@@ -92,7 +92,7 @@ class Model:
                     self.update_document({'pid': processo_espera['pid']}, {'$set': {'estado': 'Pronto'}})
 
         # Obtenha todos os processos da coleção após a atualização
-        processos = list(self.collection.find())
+        processos = list(filter(lambda processo: processo["estado"] != "Término", self.collection.find()))
 
         # Garanta que o número de processos a serem alterados não exceda o total de processos
         num_processos_alterados = min(num_processos_alterados, len(processos))
