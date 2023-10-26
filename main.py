@@ -11,6 +11,7 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 import threading
+import time
 
 
 
@@ -21,6 +22,7 @@ class App(App):
         self.layout_atual = self.build() 
         Window.size = (300, 600)
         self.process_update_event = None
+        self.create_records_thread = None
     
 
     def build(self):
@@ -262,32 +264,37 @@ class App(App):
 
 
         self.layout.clear_widgets()
-        self.layout_atual = self.buildProcessos()
+        self.layout_atual = self.build3()
         self.root.add_widget(self.layout_atual)
 
     def build3(self):
-        self.model.cria_registros()
+        # self.model.cria_registros()
         Window.size = (1200, 700)
 
-        self.layoutProcessos2 = BoxLayout(orientation='vertical')
+        # Crie um ScrollView
+        scroll_view = ScrollView()
 
-        # Recupere os registros do banco de dados
-        records = self.model.show_records()
+        self.layoutProcessos2 = BoxLayout(orientation='vertical', spacing=1)
+
+                # Iniciar a thread para a criação de registros
+        if self.create_records_thread is None or not self.create_records_thread.is_alive():
+            self.create_records_thread = threading.Thread(target=self.create_records_thread_func)
+            self.create_records_thread.start()
+
+
+        # records = self.model.show_records()
         
-        # Crie uma lista de Labels para exibir os registros
-        processo_labels = []
+        # processo_labels = []
             
-        for record in records:
-            processo_label = Label(text=f'PID: {record["pid"]}, UID: {record["uid"]}, Prioridade: {record["prioridade"]}, '
-                                        f'CPU: {record["cpu"]}, Estado: {record["estado"]}, Memória: {record["memoria"]}')
-            processo_labels.append(processo_label)  # Adicione o Label do processo à lista
+        # for record in records:
+        #     processo_label = Label(text=f'PID: {record["pid"]}, UID: {record["uid"]}, Prioridade: {record["prioridade"]}, '
+        #                                 f'CPU: {record["cpu"]}, Estado: {record["estado"]}, Memória: {record["memoria"]}')
+        #     processo_labels.append(processo_label)  
 
-        for processo_label in processo_labels:
-            self.layoutProcessos2.add_widget(processo_label)  # Adicione os Labels ao layout vertical
-
+        # for processo_label in processo_labels:
+        #     self.layoutProcessos2.add_widget(processo_label)  
         if not self.process_update_event:
             self.process_update_event = Clock.schedule_interval(self.update_process_states, 2)
-
 
 
 
@@ -297,17 +304,41 @@ class App(App):
 
         return self.layoutProcessos2
     
+    def create_records_thread_func(self):
+        while True:
+            self.model.cria_registros()
+            time.sleep(2)
+            # Agende uma atualização da interface após um breve atraso
+            Clock.schedule_once(self.update_ui, 0.1)
+
+    def update_ui(self, dt):
+        # Atualize a interface com os registros mais recentes
+        records = self.model.show_records()
+        
+        # Limpe os widgets antigos
+        self.layoutProcessos2.clear_widgets()
+        
+        # Crie novos widgets com base nos registros atualizados
+        processo_labels = []
+        for record in records:
+            processo_label = Label(text=f'PID: {record["pid"]}, UID: {record["uid"]}, Prioridade: {record["prioridade"]}, '
+                                    f'CPU: {record["cpu"]}, Estado: {record["estado"]}, Memória: {record["memoria"]}', size_hint_y=None, height=30)
+            processo_labels.append(processo_label)  
+
+        # Adicione os novos widgets à interface
+        for processo_label in processo_labels:
+            self.layoutProcessos2.add_widget(processo_label)
+
+    # No método update_process_states
     def update_process_states(self, dt):
-        # Verifica se a execução anterior da função ainda está em andamento
         if not getattr(self, 'updating_process_states', False):
-            # Inicia a atualização em um thread separado
             self.updating_process_states = True
             threading.Thread(target=self.update_process_states_thread).start()
 
+    # Em update_process_states_thread, substitua as linhas de atualização pela programação com Clock.schedule_once:
     def update_process_states_thread(self):
         try:
             self.model.mudar_estado()
-            # Após atualizar o estado dos processos, atualize os textos dos Labels
             records = self.model.show_records()
             for i, processo_label in enumerate(self.layoutProcessos2.children):
                 processo_label.text = f'PID: {records[i]["pid"]}, UID: {records[i]["uid"]}, ' \
@@ -316,7 +347,6 @@ class App(App):
                                     f'Estado: {records[i]["estado"]}, ' \
                                     f'Memória: {records[i]["memoria"]}'
         finally:
-            # Marca que a atualização terminou
             self.updating_process_states = False
     
     def atualizar_labels(self):
@@ -343,7 +373,6 @@ class App(App):
             self.process_update_event.cancel()
 
         if self.model:
-            # Certifique-se de liberar a conexão do MongoDB
             self.model.client.close()
 
 if __name__ == '__main__':
