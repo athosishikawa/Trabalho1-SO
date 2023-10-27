@@ -33,7 +33,7 @@ class Model:
         if active_count < self.max_active_processes:
             nome = random.choice(['chrome', 'excel', 'word', 'power point', 'notas', 'arquivos', 'configuração', 
                                   'calculadora', 'lixeira', 'edge', 'mongoDB', 'workbench', 'facebook', 'whatsapp', 
-                                  'telegram', 'vs code', 'firefox', 'eclipse', 'blender', 'python', 'unit', 'unreal 5'
+                                  'telegram', 'vs code', 'firefox', 'eclipse', 'blender', 'python', 'unit', 'unreal 5',
                                   'instagram', 'workplace', 'java', 'minecraft', 'paint', 'store'])
             pid = random.randint(1, 100)
             uid = random.randint(1, 100)

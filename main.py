@@ -311,8 +311,8 @@ class App(App):
             
             estado = record.get("estado", "")
 
-            text = f'PROCESSO: {record.get("nome", "")}, PID: {record.get("pid", "")}, UID: {record.get("uid", "")}, Prioridade: {record.get("prioridade", "")}, ' \
-               f'CPU: {record.get("cpu", "")}, Estado: {estado}, Memória: {record.get("memoria", "")}'
+            text = f'PROCESSO: {record.get("nome", "")} | PID: {record.get("pid", "")} | UID: {record.get("uid", "")} | Prioridade: {record.get("prioridade", "")} | ' \
+               f'CPU: {record.get("cpu", "")} | Estado: {estado} | Memória: {record.get("memoria", "")}'
 
             if estado == "Término":
                 color = (1, 0, 0, 1)  # Vermelho para o estado "Término"
