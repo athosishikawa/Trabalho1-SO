@@ -23,6 +23,11 @@ class App(App):
         Window.size = (300, 600)
         self.process_update_event = None
         self.create_records_thread = None
+        self.app_closing = False
+        self.update_lock = threading.Lock()  # Lock para sincronização
+
+
+
     
 
     def build(self):
@@ -55,8 +60,6 @@ class App(App):
         self.layoutLogin.add_widget(self.message_label)
 
         return self.layoutLogin
-
-
 
     def build2(self):
         self.layout = BoxLayout(orientation='vertical')
@@ -154,7 +157,6 @@ class App(App):
 
         self.mostrar_mensagem("Processo salvo com sucesso!")
 
-
     def consultar(self):
         try:
             pid = self.pid_entry.text
@@ -177,7 +179,6 @@ class App(App):
 
         except ValueError as e:
             self.mostrar_mensagem(str(e))
-
 
     def atualizar(self):
         #Ddados do usuário
@@ -212,7 +213,6 @@ class App(App):
 
         self.mostrar_mensagem("Processo atualizado com sucesso!")
 
-
     def deletar(self):
         pid = self.pid_entry.text
 
@@ -233,7 +233,6 @@ class App(App):
         self.cpu_entry.text = ""
         self.estado_spinner.text = ""
         self.memoria_entry.text = ""
-
 
     def mostrar_mensagem(self, mensagem):
         self.message_label.text = mensagem
@@ -276,26 +275,13 @@ class App(App):
 
         self.layoutProcessos2 = BoxLayout(orientation='vertical', spacing=1)
 
-                # Iniciar a thread para a criação de registros
+        # Iniciar a thread para a criação de registros
         if self.create_records_thread is None or not self.create_records_thread.is_alive():
             self.create_records_thread = threading.Thread(target=self.create_records_thread_func)
             self.create_records_thread.start()
 
-
-        # records = self.model.show_records()
-        
-        # processo_labels = []
-            
-        # for record in records:
-        #     processo_label = Label(text=f'PID: {record["pid"]}, UID: {record["uid"]}, Prioridade: {record["prioridade"]}, '
-        #                                 f'CPU: {record["cpu"]}, Estado: {record["estado"]}, Memória: {record["memoria"]}')
-        #     processo_labels.append(processo_label)  
-
-        # for processo_label in processo_labels:
-        #     self.layoutProcessos2.add_widget(processo_label)  
         if not self.process_update_event:
-            self.process_update_event = Clock.schedule_interval(self.update_process_states, 2)
-
+            self.process_update_event = Clock.schedule_interval(self.update_process_states, 5)
 
 
         self.layout.clear_widgets()
@@ -305,11 +291,12 @@ class App(App):
         return self.layoutProcessos2
     
     def create_records_thread_func(self):
-        while True:
+        while not self.app_closing:
             self.model.cria_registros()
-            time.sleep(2)
+            
             # Agende uma atualização da interface após um breve atraso
             Clock.schedule_once(self.update_ui, 0.1)
+            time.sleep(5)
 
     def update_ui(self, dt):
         # Atualize a interface com os registros mais recentes
@@ -319,15 +306,27 @@ class App(App):
         self.layoutProcessos2.clear_widgets()
         
         # Crie novos widgets com base nos registros atualizados
-        processo_labels = []
+        processo_widgets = []
         for record in records:
-            processo_label = Label(text=f'PID: {record["pid"]}, UID: {record["uid"]}, Prioridade: {record["prioridade"]}, '
-                                    f'CPU: {record["cpu"]}, Estado: {record["estado"]}, Memória: {record["memoria"]}', size_hint_y=None, height=30)
-            processo_labels.append(processo_label)  
+            
+            estado = record.get("estado", "")
+
+            text = f'PID: {record.get("pid", "")}, UID: {record.get("uid", "")}, Prioridade: {record.get("prioridade", "")}, ' \
+               f'CPU: {record.get("cpu", "")}, Estado: {estado}, Memória: {record.get("memoria", "")}'
+
+            if estado == "Término":
+                color = (1, 0, 0, 1)  # Vermelho para o estado "Término"
+            elif estado == "Execução":
+                color = (0, 1, 0, 1)
+            else:
+                color = (1, 1, 1, 1)  # Branco para outros estados
+
+            processo_label = Label(text=text, size_hint_y=None, height=30, color=color)
+            processo_widgets.append(processo_label)
 
         # Adicione os novos widgets à interface
-        for processo_label in processo_labels:
-            self.layoutProcessos2.add_widget(processo_label)
+        for processo_widget in processo_widgets:
+            self.layoutProcessos2.add_widget(processo_widget)
 
     # No método update_process_states
     def update_process_states(self, dt):
@@ -337,18 +336,17 @@ class App(App):
 
     # Em update_process_states_thread, substitua as linhas de atualização pela programação com Clock.schedule_once:
     def update_process_states_thread(self):
-        try:
-            self.model.mudar_estado()
-            records = self.model.show_records()
-            for i, processo_label in enumerate(self.layoutProcessos2.children):
-                processo_label.text = f'PID: {records[i]["pid"]}, UID: {records[i]["uid"]}, ' \
-                                    f'Prioridade: {records[i]["prioridade"]}, ' \
-                                    f'CPU: {records[i]["cpu"]}, ' \
-                                    f'Estado: {records[i]["estado"]}, ' \
-                                    f'Memória: {records[i]["memoria"]}'
-        finally:
-            self.updating_process_states = False
-    
+        with self.update_lock:
+            try:
+                while not self.app_closing:
+                    self.model.mudar_estado()
+                    # Agende a atualização da interface para refletir as alterações no banco de dados.
+                    Clock.schedule_once(self.update_ui, 0)
+                    # Aguarde um intervalo antes de atualizar novamente (você pode ajustar o intervalo conforme necessário).
+                    time.sleep(5)
+            finally:
+                self.updating_process_states = False
+
     def atualizar_labels(self):
         records = self.model.show_records()
         for label in self.layoutProcessos2.children:
@@ -373,6 +371,14 @@ class App(App):
             self.process_update_event.cancel()
 
         if self.model:
+            # Defina a variável de sinalização para indicar que o aplicativo está sendo encerrado.
+            self.app_closing = True
+
+            # Aguarde até que todas as threads tenham terminado.
+            if self.create_records_thread and self.create_records_thread.is_alive():
+                self.create_records_thread.join()
+
+            # Feche a conexão MongoDB.
             self.model.client.close()
 
 if __name__ == '__main__':
