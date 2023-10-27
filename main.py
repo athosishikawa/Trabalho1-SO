@@ -311,7 +311,7 @@ class App(App):
             
             estado = record.get("estado", "")
 
-            text = f'PID: {record.get("pid", "")}, UID: {record.get("uid", "")}, Prioridade: {record.get("prioridade", "")}, ' \
+            text = f'PROCESSO: {record.get("nome", "")}, PID: {record.get("pid", "")}, UID: {record.get("uid", "")}, Prioridade: {record.get("prioridade", "")}, ' \
                f'CPU: {record.get("cpu", "")}, Estado: {estado}, Memória: {record.get("memoria", "")}'
 
             if estado == "Término":

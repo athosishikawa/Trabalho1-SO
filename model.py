@@ -31,6 +31,10 @@ class Model:
         active_count = self.collection.count_documents({"estado": {"$ne": "Término"}})
 
         if active_count < self.max_active_processes:
+            nome = random.choice(['chrome', 'excel', 'word', 'power point', 'notas', 'arquivos', 'configuração', 
+                                  'calculadora', 'lixeira', 'edge', 'mongoDB', 'workbench', 'facebook', 'whatsapp', 
+                                  'telegram', 'vs code', 'firefox', 'eclipse', 'blender', 'python', 'unit', 'unreal 5'
+                                  'instagram', 'workplace', 'java', 'minecraft', 'paint', 'store'])
             pid = random.randint(1, 100)
             uid = random.randint(1, 100)
             prioridade = random.choice(['Alta', 'Média', 'Baixa'])
@@ -39,6 +43,7 @@ class Model:
             memoria = random.randint(1, 100)
 
             registro = {
+                'nome': nome,
                 'pid': pid,
                 'uid': uid,
                 'prioridade': prioridade,
@@ -63,10 +68,16 @@ class Model:
             processo_execucao['estado'] = 'Execução'
             self.update_document({'pid': processo_execucao['pid']}, {'$set': {'estado': 'Execução'}})
 
+
         for processo in processos_execucao:
             proximo_estado = random.choice(["Pronto", "Espera", "Término"])
             processo['estado'] = proximo_estado
             self.update_document({'pid': processo['pid']}, {'$set': {'estado': proximo_estado}})
+            
+            processo_pronto = processos_pronto[0] 
+            self.update_document({'pid': processo_pronto['pid']}, {'$set': {'estado': 'Execução'}})
+
+            
 
         if processos_inicio:
             for processo in processos_inicio:
